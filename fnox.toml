@@ -26,6 +26,11 @@ GDOCS_SYNC_SCRIPT_ID= { provider = "keychain", value = "GDOCS_SYNC_SCRIPT_ID" }
 # clasp OAuth credentials — full contents of ~/.clasprc.json (refresh token). SECRET.
 GDOCS_SYNC_CLASP_RC= { provider = "keychain", value = "GDOCS_SYNC_CLASP_RC" }
 
+# Web-app trigger (full headless control via `mise run gdoc:run`).
+# URL is not secret; the token gates execution and IS secret.
+GDOCS_SYNC_WEBAPP_URL= { provider = "keychain", value = "GDOCS_SYNC_WEBAPP_URL" }
+GDOCS_SYNC_API_TOKEN  = { provider = "keychain", value = "GDOCS_SYNC_API_TOKEN" }
+
 # OPTIONAL — only for the CLI run route (`mise run gdoc:sync` → clasp run).
 # Contents of the GCP "Desktop app" OAuth client JSON downloaded from the Cloud
 # Console (see ONBOARDING.md). SECRET. Leave unset if you only use the nightly

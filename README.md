@@ -4,6 +4,7 @@
 >
 > | | URL |
 > | --- | --- |
+> | 📊 **Registry sheet** (control panel — sources × languages, share links) | https://docs.google.com/spreadsheets/d/13FNVv5ITt4GkvTbf3kP08uwHRqe6PQNkS3cCNLR8Q00/edit |
 > | 📄 EN doc (source) | https://docs.google.com/document/d/1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM/edit |
 > | 📄 TH doc (target) | https://docs.google.com/document/d/17k8fZUvbESDOwASl_3o5q9s6dvR7yFnGXqWzdc0Tc1A/edit |
 > | 🧩 Apps Script editor | `https://script.google.com/home/projects/SCRIPT_ID/edit` |

@@ -62,6 +62,35 @@ function syncAll() {
 
 function openRegistry() { Logger.log('Registry sheet: ' + registry_().getUrl()); }
 
+/**
+ * Token-gated web entry point so the sync can be triggered programmatically
+ * (e.g. `mise run gdoc:run`). Deployed as a web app; gated by a secret token
+ * stored in Script Properties (set by setupApi), so the URL alone does nothing.
+ *   GET <webapp-url>/exec?token=<token>           → syncAll()
+ *   GET <webapp-url>/exec?token=<token>&fn=setup  → setupRegistry()
+ */
+function doGet(e) {
+  const token = PropertiesService.getScriptProperties().getProperty('api_token');
+  const given = e && e.parameter ? e.parameter.token : '';
+  if (!token || given !== token) {
+    return ContentService.createTextOutput('forbidden').setMimeType(ContentService.MimeType.TEXT);
+  }
+  const fn = (e.parameter.fn || 'sync');
+  if (fn === 'setup') { setupRegistry(); return text_('setup ok'); }
+  syncAll();
+  return text_('sync ok');
+}
+
+function text_(s) { return ContentService.createTextOutput(s).setMimeType(ContentService.MimeType.TEXT); }
+
+/** Generate (once) and print the API token used to call the web app. */
+function setupApi() {
+  const props = PropertiesService.getScriptProperties();
+  let t = props.getProperty('api_token');
+  if (!t) { t = Utilities.getUuid().replace(/-/g, ''); props.setProperty('api_token', t); }
+  Logger.log('API token: ' + t);
+}
+
 function enableNightlySync() {
   disableAutoSync();
   ScriptApp.newTrigger('syncAll').timeBased().everyDays(1).atHour(3).create();

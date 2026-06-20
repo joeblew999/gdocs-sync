@@ -103,9 +103,21 @@ else
 fi
 '''
 
-# ── CLI run route (needs ONBOARDING.md: GCP project + OAuth creds) ────────────
+# ── trigger the sync (full headless control via the web app) ─────────────────
+
+[tasks."gdoc:run"]
+description = "Trigger syncAll via the web app (token-gated; no GCP setup needed)"
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token — run setupApi in the editor, then store them in fnox"; exit 1; }
+echo "triggering syncAll…"
+curl -sL "$url?token=$tok&fn=sync"; echo
+'''
+
+# ── CLI run route (alternative; needs ONBOARDING.md GCP project + OAuth creds) ─
 
 [tasks."gdoc:sync"]
-description = "Run syncToThai INSIDE Apps Script from the CLI (requires clasp run onboarding)"
+description = "Run syncAll INSIDE Apps Script via clasp run (requires clasp run onboarding)"
 depends = ["gdoc:auth-restore"]
-run = "clasp run syncToThai"
+run = "clasp run syncAll"
