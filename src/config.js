@@ -1,28 +1,36 @@
 /**
  * Settings. The control panel is a Google Sheet (created by setupRegistry).
- * One row per (source doc × target language). You work entirely with full Google
- * Doc LINKS — paste a link as the source, and each target's link is written back
- * so you can click straight through to any doc from the sheet.
+ * One row per output doc. Two kinds of row, set by the `mode` column:
  *
- *   name | source_link | from | to_lang | target_link | access | last_synced | status
+ *   mode = sync  → target is re-translated from the source on every run
+ *                  (use for a published shared translation)
+ *   mode = once  → target is created once, then NEVER overwritten
+ *                  (use for a builder's own copy — they write quotes into it)
  *
- * Fill source_link + to_lang. Leave target_link blank → a translated doc is
- * auto-created and its link written back (stable forever — the share link never
- * changes on later runs). Put "link" in access to make that target viewable by
- * anyone with the link. Run syncAll() to translate every row.
+ * Columns:
+ *   builder | email | source_link | from | to_lang | mode | target_link | access | last_synced | status
+ *
+ * Fill builder + source_link + to_lang (+ mode). Leave target_link blank → a doc
+ * is created (copy of the source, translated) and its link written back, stable
+ * forever. Put "link" in access to make it viewable by anyone with the link.
+ *
+ * Add a builder fast with: mise run gdoc:add "<Builder Name>" --lang th --email a@b.com
  *
  * Apps Script shares one global scope across files, so SETTINGS is visible in Code.js.
  */
 const SETTINGS = {
   registrySheetName: 'gdocs-sync registry',
 
-  header: ['name', 'source_link', 'from', 'to_lang', 'target_link', 'access', 'last_synced', 'status'],
+  // Default source (the master spec) used when gdoc:add doesn't specify one.
+  master: 'https://docs.google.com/document/d/1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM/edit',
 
-  // Seed row written when the sheet is first created (your existing EN→TH pair).
+  header: ['builder', 'email', 'source_link', 'from', 'to_lang', 'mode', 'target_link', 'access', 'last_synced', 'status'],
+
+  // Seed: the existing published EN→TH shared translation.
   seed: [
-    ['main',
+    ['published', '',
      'https://docs.google.com/document/d/1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM/edit',
-     'en', 'th',
+     'en', 'th', 'sync',
      'https://docs.google.com/document/d/17k8fZUvbESDOwASl_3o5q9s6dvR7yFnGXqWzdc0Tc1A/edit',
      '', '', ''],
   ],

@@ -21,18 +21,33 @@ for that button) using [Apps Script](https://developers.google.com/apps-script) 
 
 ## How it works
 
-1. The **registry sheet** is your control panel — one row per *(source doc × language)*:
+1. The **registry sheet** is your control panel — one row per output doc:
 
-   | name | source_link | from | to_lang | target_link | access | last_synced | status |
-   |------|-------------|------|---------|-------------|--------|-------------|--------|
-   | main | …/source/edit | en | th | …/target/edit | link | … | ok |
+   | builder | email | source_link | from | to_lang | mode | target_link | access | last_synced | status |
+   |---------|-------|-------------|------|---------|------|-------------|--------|-------------|--------|
+   | published | | …/master/edit | en | th | sync | …/edit | link | … | resynced |
+   | Acme Co | a@b | …/master/edit | en | th | once | …/edit | link | … | created |
 
-   - Fill **source_link** + **to_lang**. Leave **target_link** blank → a doc is
-     auto-created and its link written back (stable forever).
-   - Put `link` in **access** to make a target viewable by anyone with the link.
-2. Running `syncAll` translates every row and writes back the target link + timestamp.
-3. The target doc is edited **in place** (by id) — its ID, share link, and permissions
-   never change across runs.
+   - **mode = sync** → re-translated from the source on every run (a published shared translation).
+   - **mode = once** → created once, then **never overwritten** — for a **builder's own copy**,
+     which they read and write quotes into.
+   - Leave **target_link** blank → a doc is created (copy of the source, translated) and its
+     link written back (stable forever). `link` in **access** = anyone-with-link view.
+2. `syncAll` processes every row: creates missing docs, re-translates `sync` rows, leaves
+   `once` rows alone (so builder edits survive), and writes links back.
+3. Targets are edited **in place** (by id) — ID, share link, permissions never change.
+
+### Per-builder copies
+
+Each builder gets their **own translated copy** of the master spec to read and quote into:
+
+```sh
+mise run gdoc:add "Acme Co" --lang th --email acme@example.com
+```
+
+This copies the master, translates it, creates a `mode=once` row, and returns the doc link.
+The master can keep changing (its `published` translation re-syncs); builder copies are
+frozen the moment they're made, so no one's quotes get wiped.
 
 ## Run it
 
@@ -82,7 +97,9 @@ mise run gdoc:run          # verify headless trigger works
 
 | Task | Does |
 | ---- | ---- |
+| `gdoc:add "<Builder>" [--lang th] [--email …]` | create a builder's own translated copy |
 | `gdoc:run` | trigger syncAll headlessly (web app) |
+| `gdoc:state` | read registry state (links + status) as JSON |
 | `gdoc:setup-remote` | (re)initialise the registry sheet headlessly |
 | `gdoc:push` / `gdoc:dev` / `gdoc:pull` / `gdoc:status` | clasp file sync |
 | `gdoc:deploy` | update the web app to the latest pushed code (same URL) |

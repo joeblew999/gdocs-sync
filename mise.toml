@@ -82,6 +82,19 @@ echo "triggering syncAll…"
 curl -sL "$url?token=$tok&fn=sync"; echo
 '''
 
+[tasks."gdoc:add"]
+description = "Create a builder's translated copy: gdoc:add \"<Builder>\" [--lang th] [--email a@b]"
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+b=$(printf %s "{{arg(name='builder')}}" | jq -sRr @uri)
+l="{{option(name='lang', default='th')}}"
+e=$(printf %s "{{option(name='email', default='')}}" | jq -sRr @uri)
+echo "creating builder doc…"
+curl -sL "$url?token=$tok&fn=add&builder=$b&lang=$l&email=$e"; echo
+'''
+
 [tasks."gdoc:setup-remote"]
 description = "(Re)initialise the registry sheet headlessly via the web app"
 run = '''

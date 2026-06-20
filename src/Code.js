@@ -50,23 +50,55 @@ function syncAll() {
   for (let r = 1; r < vals.length; r++) {
     const row = vals[r];
     const srcId = extractId_(row[H.source_link]), to = row[H.to_lang], from = row[H.from] || 'en';
+    const mode = String(row[H.mode] || 'once').trim().toLowerCase();
     if (!srcId || !to) continue;
     try {
       let tgtId = extractId_(row[H.target_link]);
-      if (!tgtId) { tgtId = createTarget_(srcId, to); }
-      translateInto_(srcId, tgtId, from, to);
+      let action;
+      if (!tgtId) {                              // no doc yet → create + translate
+        tgtId = createTarget_(srcId, to, row[H.builder]);
+        translateInto_(srcId, tgtId, from, to);
+        action = 'created';
+      } else if (mode === 'sync') {              // published translation → refresh
+        translateInto_(srcId, tgtId, from, to);
+        action = 'resynced';
+      } else {                                   // mode=once + exists → leave builder's edits alone
+        action = 'kept';
+      }
       if (String(row[H.access]).trim().toLowerCase() === 'link') { setLinkSharing_(tgtId); }
 
       const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
       sh.getRange(r + 1, H.target_link + 1).setValue(link);
       sh.getRange(r + 1, H.last_synced + 1).setValue(new Date());
-      sh.getRange(r + 1, H.status + 1).setValue('ok');
-      Logger.log('OK   ' + row[H.name] + ' ' + to + ' → ' + link);
+      sh.getRange(r + 1, H.status + 1).setValue(action);
+      Logger.log('OK   ' + row[H.builder] + ' ' + to + ' [' + action + '] → ' + link);
     } catch (e) {
       sh.getRange(r + 1, H.status + 1).setValue('FAIL: ' + e);
-      Logger.log('FAIL ' + row[H.name] + ' ' + to + ': ' + e);
+      Logger.log('FAIL ' + row[H.builder] + ' ' + to + ': ' + e);
     }
   }
+}
+
+/** Create a builder's translated copy and append a (mode=once) row. Returns its link. */
+function addBuilder_(builder, email, lang, srcUrl) {
+  if (!builder) throw new Error('builder name required');
+  srcUrl = srcUrl || SETTINGS.master;
+  const srcId = extractId_(srcUrl);
+  if (!srcId) throw new Error('bad source link');
+  lang = lang || 'th';
+
+  const tgtId = createTarget_(srcId, lang, builder);
+  translateInto_(srcId, tgtId, 'en', lang);
+  const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
+
+  const sh = registry_().getSheets()[0];
+  const H = headerIndex_(sh.getDataRange().getValues()[0]);
+  const arr = new Array(SETTINGS.header.length).fill('');
+  arr[H.builder] = builder; arr[H.email] = email || ''; arr[H.source_link] = srcUrl;
+  arr[H.from] = 'en'; arr[H.to_lang] = lang; arr[H.mode] = 'once';
+  arr[H.target_link] = link; arr[H.last_synced] = new Date(); arr[H.status] = 'created';
+  sh.appendRow(arr);
+  return link;
 }
 
 /** Pull the doc id out of a full Google Docs URL (or return '' if none). */
@@ -93,6 +125,10 @@ function doGet(e) {
   }
   const fn = (e.parameter.fn || 'sync');
   if (fn === 'setup') { setupRegistry(); return text_('setup ok'); }
+  if (fn === 'add') {
+    const link = addBuilder_(e.parameter.builder, e.parameter.email, e.parameter.lang, e.parameter.src);
+    return text_(link);
+  }
   if (fn === 'status') {
     return ContentService.createTextOutput(JSON.stringify(statusJson_(), null, 2))
       .setMimeType(ContentService.MimeType.JSON);
@@ -113,7 +149,7 @@ function statusJson_() {
     const row = vals[r];
     if (!row[H.source_link]) continue;
     out.push({
-      name: row[H.name], to: row[H.to_lang],
+      builder: row[H.builder], to: row[H.to_lang], mode: row[H.mode],
       target_link: row[H.target_link], last_synced: String(row[H.last_synced]),
       status: row[H.status],
     });
@@ -157,9 +193,10 @@ function headerIndex_(hdr) {
 }
 
 /** Create a translated doc by copying the source (kept in the source's folder). */
-function createTarget_(sourceId, lang) {
+function createTarget_(sourceId, lang, label) {
   const f = DriveApp.getFileById(sourceId);
-  const title = f.getName() + ' [' + String(lang).toUpperCase() + ']';
+  let title = f.getName() + ' [' + String(lang).toUpperCase() + ']';
+  if (label) { title += ' — ' + label; }
   const parents = f.getParents();
   const copy = parents.hasNext() ? f.makeCopy(title, parents.next()) : f.makeCopy(title);
   return copy.getId();
