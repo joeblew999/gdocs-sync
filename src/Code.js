@@ -46,6 +46,7 @@ function syncAll() {
   const sh = ss.getSheets()[0];
   const vals = sh.getDataRange().getValues();
   const H = headerIndex_(vals[0]);
+  logEvent_('syncAll start (' + (vals.length - 1) + ' rows)');
 
   for (let r = 1; r < vals.length; r++) {
     const row = vals[r];
@@ -71,12 +72,13 @@ function syncAll() {
       sh.getRange(r + 1, H.target_link + 1).setValue(link);
       sh.getRange(r + 1, H.last_synced + 1).setValue(new Date());
       sh.getRange(r + 1, H.status + 1).setValue(action);
-      Logger.log('OK   ' + row[H.builder] + ' ' + to + ' [' + action + '] → ' + link);
+      logEvent_(action + '  ' + row[H.builder] + ' ' + to);
     } catch (e) {
       sh.getRange(r + 1, H.status + 1).setValue('FAIL: ' + e);
-      Logger.log('FAIL ' + row[H.builder] + ' ' + to + ': ' + e);
+      logEvent_('FAIL  ' + row[H.builder] + ' ' + to + ': ' + e);
     }
   }
+  logEvent_('syncAll done');
 }
 
 /** Trash the target doc(s) and delete the registry row(s) for a builder. Returns count. */
@@ -105,9 +107,11 @@ function addBuilder_(builder, email, lang, srcUrl) {
   if (!srcId) throw new Error('bad source link');
   lang = lang || 'th';
 
+  logEvent_('add "' + builder + '" (' + lang + ') — copying + translating…');
   const tgtId = createTarget_(srcId, lang, builder);
   translateInto_(srcId, tgtId, 'en', lang);
   const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
+  logEvent_('add "' + builder + '" done → ' + link);
 
   const sh = registry_().getSheets()[0];
   const H = headerIndex_(sh.getDataRange().getValues()[0]);
@@ -117,6 +121,17 @@ function addBuilder_(builder, email, lang, srcUrl) {
   arr[H.target_link] = link; arr[H.last_synced] = new Date(); arr[H.status] = 'created';
   sh.appendRow(arr);
   return link;
+}
+
+/** Append a timestamped line to the run log (Script Property, last ~60 lines). */
+function logEvent_(msg) {
+  const props = PropertiesService.getScriptProperties();
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm:ss');
+  let log = (props.getProperty('runlog') || '') + now + '  ' + msg + '\n';
+  const lines = log.split('\n');
+  if (lines.length > 60) { log = lines.slice(lines.length - 60).join('\n'); }
+  props.setProperty('runlog', log);
+  Logger.log(msg);
 }
 
 /** Pull the doc id out of a full Google Docs URL (or return '' if none). */
@@ -149,6 +164,13 @@ function doGet(e) {
   }
   if (fn === 'remove') {
     return text_('removed ' + removeBuilder_(e.parameter.builder));
+  }
+  if (fn === 'log') {
+    return text_(PropertiesService.getScriptProperties().getProperty('runlog') || '(no log yet)');
+  }
+  if (fn === 'clearlog') {
+    PropertiesService.getScriptProperties().deleteProperty('runlog');
+    return text_('log cleared');
   }
   if (fn === 'status') {
     return ContentService.createTextOutput(JSON.stringify(statusJson_(), null, 2))
