@@ -131,6 +131,15 @@ test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; 
 curl -sL "$url?token=$tok&fn=status"; echo
 '''
 
+[tasks."gdoc:share"]
+description = "Add the configured editors (SETTINGS.editors) to every target doc — safe, no retranslation"
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sL "$url?token=$tok&fn=share"; echo
+'''
+
 [tasks."gdoc:log"]
 description = "Show the run log (timestamped progress of the last/ongoing operation)"
 run = '''

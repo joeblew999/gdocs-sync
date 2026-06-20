@@ -24,6 +24,10 @@ const SETTINGS = {
   // Default source (the master spec) used when gdoc:add doesn't specify one.
   master: 'https://docs.google.com/document/d/1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM/edit',
 
+  // People granted EDITOR access on every created target doc (builder + published).
+  // Applied on creation; run `mise run gdoc:share` to back-fill existing docs.
+  editors: ['phimphi.b123@gmail.com'],
+
   header: ['builder', 'email', 'source_link', 'from', 'to_lang', 'mode', 'target_link', 'access', 'last_synced', 'status'],
 
   // Seed: the existing published EN→TH shared translation.

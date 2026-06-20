@@ -165,6 +165,9 @@ function doGet(e) {
   if (fn === 'remove') {
     return text_('removed ' + removeBuilder_(e.parameter.builder));
   }
+  if (fn === 'share') {
+    return text_('shared ' + shareAll_());
+  }
   if (fn === 'log') {
     return text_(PropertiesService.getScriptProperties().getProperty('runlog') || '(no log yet)');
   }
@@ -242,7 +245,31 @@ function createTarget_(sourceId, lang, label) {
   if (label) { title += ' — ' + label; }
   const parents = f.getParents();
   const copy = parents.hasNext() ? f.makeCopy(title, parents.next()) : f.makeCopy(title);
+  applyEditors_(copy.getId());
   return copy.getId();
+}
+
+/** Grant the configured editors edit access to a doc (idempotent; never edits content). */
+function applyEditors_(id) {
+  (SETTINGS.editors || []).forEach(function (email) {
+    if (!email) return;
+    try { DriveApp.getFileById(id).addEditor(email); }
+    catch (e) { logEvent_('addEditor ' + email + ' failed on ' + id + ': ' + e); }
+  });
+}
+
+/** Add the configured editors to every target doc in the registry. Returns count. */
+function shareAll_() {
+  const sh = registry_().getSheets()[0];
+  const vals = sh.getDataRange().getValues();
+  const H = headerIndex_(vals[0]);
+  let n = 0;
+  for (let r = 1; r < vals.length; r++) {
+    const id = extractId_(vals[r][H.target_link]);
+    if (id) { applyEditors_(id); n++; }
+  }
+  logEvent_('shared ' + n + ' docs with editors');
+  return n;
 }
 
 function translateInto_(sourceId, targetId, from, to) {
