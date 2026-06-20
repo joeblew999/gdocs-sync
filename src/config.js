@@ -33,6 +33,13 @@ const SETTINGS = {
   // Applied on creation; run `mise run gdoc:share` to back-fill existing docs.
   editors: ['phimphi.b123@gmail.com'],
 
+  // People granted read-only (VIEWER) access on the registry SHEET itself.
+  registryViewers: ['phimphi.b123@gmail.com'],
+
+  // Default link access for new builder docs created via gdoc:add.
+  // 'edit' = anyone-with-link can edit (builders here use LINE, not Google accounts).
+  builderAccess: 'edit',
+
   header: ['builder', 'email', 'source_link', 'from', 'to_lang', 'mode', 'target_link', 'access', 'last_synced', 'status'],
 
   // Seed: the existing published EN→TH shared translation.

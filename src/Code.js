@@ -37,6 +37,11 @@ function setupRegistry() {
     sh.getRange(1, 1, 1, cols).setValues([SETTINGS.header]).setFontWeight('bold');
   }
   sh.setFrozenRows(1);
+  (SETTINGS.registryViewers || []).forEach(function (em) {       // read-only access to the registry
+    if (!em) return;
+    try { DriveApp.getFileById(ss.getId()).addViewer(em); }
+    catch (e) { Logger.log('addViewer ' + em + ' failed: ' + e); }
+  });
   Logger.log('Registry sheet: ' + ss.getUrl());
 }
 
@@ -101,17 +106,18 @@ function removeBuilder_(builder) {
 }
 
 /** Create a builder's translated copy and append a (mode=once) row. Returns its link. */
-function addBuilder_(builder, email, lang, srcUrl) {
+function addBuilder_(builder, email, lang, srcUrl, access) {
   if (!builder) throw new Error('builder name required');
   srcUrl = srcUrl || SETTINGS.master;
   const srcId = extractId_(srcUrl);
   if (!srcId) throw new Error('bad source link');
   lang = lang || 'th';
+  access = access || SETTINGS.builderAccess || '';
 
   logEvent_('add "' + builder + '" (' + lang + ') — copying + translating…');
   const tgtId = createTarget_(srcId, lang, builder);
   translateInto_(srcId, tgtId, 'en', lang);
-  shareTarget_(tgtId, email, '');   // global editors + the builder's own email
+  shareTarget_(tgtId, email, access);   // global editors + builder email + link access
   const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
   logEvent_('add "' + builder + '" done → ' + link);
 
@@ -119,10 +125,29 @@ function addBuilder_(builder, email, lang, srcUrl) {
   const H = headerIndex_(sh.getDataRange().getValues()[0]);
   const arr = new Array(SETTINGS.header.length).fill('');
   arr[H.builder] = builder; arr[H.email] = email || ''; arr[H.source_link] = srcUrl;
-  arr[H.from] = 'en'; arr[H.to_lang] = lang; arr[H.mode] = 'once';
+  arr[H.from] = 'en'; arr[H.to_lang] = lang; arr[H.mode] = 'once'; arr[H.access] = access;
   arr[H.target_link] = link; arr[H.last_synced] = new Date(); arr[H.status] = 'created';
   sh.appendRow(arr);
   return link;
+}
+
+/** Change link access for a builder's row(s) without retranslating. Returns count. */
+function setAccessFor_(builder, access) {
+  if (!builder) throw new Error('builder name required');
+  const sh = registry_().getSheets()[0];
+  const vals = sh.getDataRange().getValues();
+  const H = headerIndex_(vals[0]);
+  let n = 0;
+  for (let r = 1; r < vals.length; r++) {
+    if (String(vals[r][H.builder]) === String(builder)) {
+      const id = extractId_(vals[r][H.target_link]);
+      if (id) { setAccess_(id, access); }
+      sh.getRange(r + 1, H.access + 1).setValue(access);
+      n++;
+    }
+  }
+  logEvent_('access "' + builder + '" → ' + access + ' (' + n + ')');
+  return n;
 }
 
 /** Append a timestamped line to the run log (Script Property, last ~60 lines). */
@@ -161,11 +186,14 @@ function doGet(e) {
   const fn = (e.parameter.fn || 'sync');
   if (fn === 'setup') { setupRegistry(); return text_('setup ok'); }
   if (fn === 'add') {
-    const link = addBuilder_(e.parameter.builder, e.parameter.email, e.parameter.lang, e.parameter.src);
+    const link = addBuilder_(e.parameter.builder, e.parameter.email, e.parameter.lang, e.parameter.src, e.parameter.access);
     return text_(link);
   }
   if (fn === 'remove') {
     return text_('removed ' + removeBuilder_(e.parameter.builder));
+  }
+  if (fn === 'access') {
+    return text_('access set on ' + setAccessFor_(e.parameter.builder, e.parameter.access));
   }
   if (fn === 'share') {
     return text_('shared ' + shareAll_());

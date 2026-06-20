@@ -87,7 +87,8 @@ description = "Create a builder's translated copy: gdoc:add \"<Builder>\" [--lan
 usage = '''
 arg "<builder>" help="Builder name"
 flag "--lang <lang>" help="Target language" default="th"
-flag "--email <email>" help="Builder email" default=""
+flag "--email <email>" help="Builder email (optional)" default=""
+flag "--access <access>" help="edit | view | (blank=private)" default="edit"
 '''
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
@@ -98,7 +99,24 @@ curl -sLG "$url" \
   --data-urlencode "token=$tok" --data-urlencode "fn=add" \
   --data-urlencode "builder=$usage_builder" \
   --data-urlencode "lang=$usage_lang" \
-  --data-urlencode "email=$usage_email"; echo
+  --data-urlencode "email=$usage_email" \
+  --data-urlencode "access=$usage_access"; echo
+'''
+
+[tasks."gdoc:access"]
+description = "Change a builder's link access without retranslating: gdoc:access \"<Builder>\" <edit|view|>"
+usage = '''
+arg "<builder>" help="Builder name (exact)"
+arg "<access>" help="edit | view | (empty=private)"
+'''
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sLG "$url" \
+  --data-urlencode "token=$tok" --data-urlencode "fn=access" \
+  --data-urlencode "builder=$usage_builder" \
+  --data-urlencode "access=$usage_access"; echo
 '''
 
 [tasks."gdoc:remove"]
