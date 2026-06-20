@@ -229,6 +229,10 @@ function doGet(e) {
   if (fn === 'bump') {
     return text_('master version: ' + bumpVersion_());
   }
+  if (fn === 'setversion') {
+    PropertiesService.getScriptProperties().setProperty('master_version', String(Number(e.parameter.n) || 1));
+    return text_('master version: ' + masterVersion_());
+  }
   if (fn === 'revise') {
     return text_(reviseBuilder_(e.parameter.builder));
   }
@@ -389,6 +393,21 @@ function copyBody_(fromBody, toBody) {
   }
 }
 
+/** Translate one string, retrying with exponential backoff on the
+ *  "invoked too many times" rate limit. */
+function tr_(text, from, to) {
+  let delay = 0;
+  for (let i = 0; i < 6; i++) {
+    try {
+      if (delay) { Utilities.sleep(delay); }
+      return LanguageApp.translate(text, from, to);
+    } catch (e) {
+      delay = delay ? delay * 2 : 1000;   // 1s, 2s, 4s, 8s, 16s
+    }
+  }
+  return LanguageApp.translate(text, from, to);   // final attempt; let it throw if still failing
+}
+
 /** Recursively translate paragraphs, list items, and table cells in place. */
 function translateContainer_(container, from, to) {
   for (let i = 0; i < container.getNumChildren(); i++) {
@@ -398,7 +417,7 @@ function translateContainer_(container, from, to) {
         type === DocumentApp.ElementType.LIST_ITEM) {
       const text = el.editAsText().getText();
       if (text && text.trim().length) {
-        el.editAsText().setText(LanguageApp.translate(text, from, to));
+        el.editAsText().setText(tr_(text, from, to));
       }
     } else if (type === DocumentApp.ElementType.TABLE) {
       const table = el.asTable();

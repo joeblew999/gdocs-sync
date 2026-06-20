@@ -9,6 +9,33 @@ for that button) using [Apps Script](https://developers.google.com/apps-script) 
 `LanguageApp` — the same translation engine the menu uses. The script is **standalone**
 (not bound to a doc) and driven by a **Google Sheet registry**, so it's fully reusable.
 
+## 👉 What YOU run
+
+You only ever touch these. (`mise tasks` shows exactly these and nothing else — the
+rest is plumbing, run for you.)
+
+**One-time setup (only you can — it needs your Google login):**
+
+```sh
+mise run gdoc:login        # sign in to Google in your browser
+mise run gdoc:auth-save    # save that sign-in
+```
+
+**Everyday:**
+
+| You want to… | Run |
+| --- | --- |
+| Edit the spec | …edit the **master doc** in Google (normal editing), then ↓ |
+| Push spec changes to the Thai copy | `mise run gdoc:run` |
+| Add a builder + get their link | `mise run gdoc:add "Builder Name"` |
+| Start a new version (after editing the master) | `mise run gdoc:bump` |
+| Give a builder the new version (keeps their old one) | `mise run gdoc:revise "Builder Name"` |
+
+That's the whole job. Everything else (translating, copying, sharing, deploying) is
+automatic. The **[registry sheet](https://docs.google.com/spreadsheets/d/13FNVv5ITt4GkvTbf3kP08uwHRqe6PQNkS3cCNLR8Q00/edit)** always shows every doc + its link.
+
+---
+
 > **Links**
 >
 > | | URL |
@@ -97,24 +124,25 @@ fnox set -p keychain GDOCS_SYNC_API_TOKEN <token>
 mise run gdoc:run          # verify headless trigger works
 ```
 
-## Tasks
+## All tasks (full reference)
+
+The everyday ones are in **[👉 What YOU run](#-what-you-run)** above. The rest are
+**hidden** (`hide = true`) — run automatically, listed here only for completeness.
+
+**Yours (visible in `mise tasks`):**
 
 | Task | Does |
 | ---- | ---- |
-| `gdoc:bump` | bump the master version (after you change the master) |
-| `gdoc:revise "<Builder>"` | new version doc from the updated master; old kept + superseded |
-| `gdoc:add "<Builder>" [--lang th] [--email …]` | create a builder's own translated copy |
-| `gdoc:remove "<Builder>"` | trash a builder's doc + remove its registry row |
-| `gdoc:share` | apply configured editors/email/access to every target doc (no retranslation) |
-| `gdoc:access "<Builder>" <edit\|view\|>` | change a builder's link access (no retranslation) |
-| `gdoc:run` | trigger syncAll headlessly (web app) |
-| `gdoc:state` | read registry state (links + status) as JSON |
-| `gdoc:setup-remote` | (re)initialise the registry sheet headlessly |
-| `gdoc:push` / `gdoc:dev` / `gdoc:pull` / `gdoc:status` | clasp file sync |
-| `gdoc:deploy` | update the web app to the latest pushed code (same URL) |
-| `gdoc:open` | open the Apps Script editor |
-| `gdoc:urls` | print live URLs |
-| `gdoc:login` / `gdoc:auth-save` / `gdoc:auth-restore` / `gdoc:link` | auth/setup |
+| `gdoc:login` / `gdoc:auth-save` | one-time Google sign-in setup |
+| `gdoc:add "<Builder>"` | create a builder's translated copy + link |
+| `gdoc:run` | refresh the published Thai translation |
+| `gdoc:bump` | start a new master version |
+| `gdoc:revise "<Builder>"` | new version for a builder (old kept) |
+
+**Internal (hidden):** `gdoc:auth-restore`, `gdoc:link`, `gdoc:push`, `gdoc:dev`,
+`gdoc:pull`, `gdoc:status`, `gdoc:deploy`, `gdoc:open`, `gdoc:access`, `gdoc:setversion`,
+`gdoc:remove`, `gdoc:setup-remote`, `gdoc:state`, `gdoc:share`, `gdoc:log`, `gdoc:urls`,
+`mcp:serve`.
 | `mcp:serve` | run clasp's MCP server (registered in `~/.claude.json` as `clasp`) |
 
 ## Notes / limits

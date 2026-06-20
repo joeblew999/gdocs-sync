@@ -8,82 +8,28 @@
 node = "lts"
 "npm:@google/clasp" = "latest"
 
-# ── auth (one-time per machine) ──────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+# TASKS YOU RUN  (these are the only ones that show in `mise tasks`)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── one-time setup (only you can do these — they need your Google login) ─────
 
 [tasks."gdoc:login"]
-description = "Interactive Google OAuth (writes ~/.clasprc.json). Run once, then gdoc:auth-save."
+description = "SETUP (once): sign in to Google in your browser"
 run = "clasp login"
 
 [tasks."gdoc:auth-save"]
-description = "Capture ~/.clasprc.json into the keychain (after gdoc:login)"
+description = "SETUP (once): save that sign-in to your keychain (after gdoc:login)"
 run = '''
 test -f "$HOME/.clasprc.json" || { echo "no ~/.clasprc.json — run gdoc:login first"; exit 1; }
 fnox set -p keychain GDOCS_SYNC_CLASP_RC "$(cat "$HOME/.clasprc.json")"
 echo "saved clasp credentials to keychain"
 '''
 
-[tasks."gdoc:auth-restore"]
-description = "Materialise ~/.clasprc.json from the keychain so clasp can run"
-run = 'fnox get GDOCS_SYNC_CLASP_RC > "$HOME/.clasprc.json" && echo "restored ~/.clasprc.json"'
-
-[tasks."gdoc:link"]
-description = "Regenerate .clasp.json from the Script ID in the keychain (after a fresh clone)"
-run = '''
-id="$(fnox get GDOCS_SYNC_SCRIPT_ID)"
-test -n "$id" || { echo "no Script ID in fnox (GDOCS_SYNC_SCRIPT_ID)"; exit 1; }
-printf '{\n  "scriptId": "%s",\n  "rootDir": "src"\n}\n' "$id" > .clasp.json
-echo "wrote .clasp.json"
-'''
-
-# ── develop & deploy ─────────────────────────────────────────────────────────
-
-[tasks."gdoc:push"]
-description = "Push local src/ up to Apps Script"
-depends = ["gdoc:auth-restore"]
-run = "clasp push -f"
-
-[tasks."gdoc:dev"]
-description = "Watch src/ and auto-push on every save"
-depends = ["gdoc:auth-restore"]
-run = "clasp push --watch"
-
-[tasks."gdoc:status"]
-description = "Preview which files would be pushed"
-run = "clasp status"
-
-[tasks."gdoc:pull"]
-description = "Pull the remote project into src/"
-depends = ["gdoc:auth-restore"]
-run = "clasp pull"
-
-[tasks."gdoc:deploy"]
-description = "Update the web-app deployment to the latest pushed code (same URL)"
-depends = ["gdoc:auth-restore"]
-run = '''
-id="$(fnox get GDOCS_SYNC_DEPLOY_ID)"
-test -n "$id" || { echo "no deploy id in fnox (GDOCS_SYNC_DEPLOY_ID)"; exit 1; }
-clasp redeploy "$id"
-'''
-
-[tasks."gdoc:open"]
-description = "Open the Apps Script editor in the browser"
-depends = ["gdoc:auth-restore"]
-run = "clasp open-script"
-
-# ── run ──────────────────────────────────────────────────────────────────────
-
-[tasks."gdoc:run"]
-description = "Trigger syncAll headlessly via the web app (token-gated)"
-run = '''
-url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
-tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
-test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox — run setupApi in the editor first"; exit 1; }
-echo "triggering syncAll…"
-curl -sL "$url?token=$tok&fn=sync"; echo
-'''
+# ── everyday: operate the wardrobe/quote system ──────────────────────────────
 
 [tasks."gdoc:add"]
-description = "Create a builder's translated copy: gdoc:add \"<Builder>\" [--lang th] [--email a@b]"
+description = "Add a builder and get their doc link: gdoc:add \"<Builder>\""
 usage = '''
 arg "<builder>" help="Builder name"
 flag "--lang <lang>" help="Target language" default="th"
@@ -103,8 +49,98 @@ curl -sLG "$url" \
   --data-urlencode "access=$usage_access"; echo
 '''
 
+[tasks."gdoc:run"]
+description = "Refresh the Thai translation after editing the master"
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+echo "refreshing…"
+curl -sL "$url?token=$tok&fn=sync"; echo
+'''
+
+[tasks."gdoc:bump"]
+description = "After you change the master spec: start a new version"
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sL "$url?token=$tok&fn=bump"; echo
+'''
+
+[tasks."gdoc:revise"]
+description = "Give a builder a fresh doc on the new version (old one kept): gdoc:revise \"<Builder>\""
+usage = 'arg "<builder>" help="Builder name (exact)"'
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sLG "$url" \
+  --data-urlencode "token=$tok" --data-urlencode "fn=revise" \
+  --data-urlencode "builder=$usage_builder"; echo
+'''
+
+# ═══════════════════════════════════════════════════════════════════════════
+# INTERNAL  (hidden — these are run for you; you don't need them)
+# ═══════════════════════════════════════════════════════════════════════════
+
+[tasks."gdoc:auth-restore"]
+hide = true
+description = "Materialise ~/.clasprc.json from the keychain so clasp can run"
+run = 'fnox get GDOCS_SYNC_CLASP_RC > "$HOME/.clasprc.json" && echo "restored ~/.clasprc.json"'
+
+[tasks."gdoc:link"]
+hide = true
+description = "Regenerate .clasp.json from the Script ID in the keychain (after a fresh clone)"
+run = '''
+id="$(fnox get GDOCS_SYNC_SCRIPT_ID)"
+test -n "$id" || { echo "no Script ID in fnox (GDOCS_SYNC_SCRIPT_ID)"; exit 1; }
+printf '{\n  "scriptId": "%s",\n  "rootDir": "src"\n}\n' "$id" > .clasp.json
+echo "wrote .clasp.json"
+'''
+
+[tasks."gdoc:push"]
+hide = true
+description = "Push local src/ up to Apps Script"
+depends = ["gdoc:auth-restore"]
+run = "clasp push -f"
+
+[tasks."gdoc:dev"]
+hide = true
+description = "Watch src/ and auto-push on every save"
+depends = ["gdoc:auth-restore"]
+run = "clasp push --watch"
+
+[tasks."gdoc:status"]
+hide = true
+description = "Preview which files would be pushed"
+run = "clasp status"
+
+[tasks."gdoc:pull"]
+hide = true
+description = "Pull the remote project into src/"
+depends = ["gdoc:auth-restore"]
+run = "clasp pull"
+
+[tasks."gdoc:deploy"]
+hide = true
+description = "Update the web-app deployment to the latest pushed code (same URL)"
+depends = ["gdoc:auth-restore"]
+run = '''
+id="$(fnox get GDOCS_SYNC_DEPLOY_ID)"
+test -n "$id" || { echo "no deploy id in fnox (GDOCS_SYNC_DEPLOY_ID)"; exit 1; }
+clasp redeploy "$id"
+'''
+
+[tasks."gdoc:open"]
+hide = true
+description = "Open the Apps Script editor in the browser"
+depends = ["gdoc:auth-restore"]
+run = "clasp open-script"
+
 [tasks."gdoc:access"]
-description = "Change a builder's link access without retranslating: gdoc:access \"<Builder>\" <edit|view|>"
+hide = true
+description = "Change a builder's link access without retranslating"
 usage = '''
 arg "<builder>" help="Builder name (exact)"
 arg "<access>" help="edit | view | (empty=private)"
@@ -119,29 +155,20 @@ curl -sLG "$url" \
   --data-urlencode "access=$usage_access"; echo
 '''
 
-[tasks."gdoc:bump"]
-description = "Bump the master version (run after you change the master doc, before revising builders)"
+[tasks."gdoc:setversion"]
+hide = true
+description = "Set the master version number"
+usage = 'arg "<n>" help="Version number"'
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
 tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
 test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
-curl -sL "$url?token=$tok&fn=bump"; echo
-'''
-
-[tasks."gdoc:revise"]
-description = "New version of a builder's quote from the updated master (old kept + superseded): gdoc:revise \"<Builder>\""
-usage = 'arg "<builder>" help="Builder name (exact)"'
-run = '''
-url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
-tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
-test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
-curl -sLG "$url" \
-  --data-urlencode "token=$tok" --data-urlencode "fn=revise" \
-  --data-urlencode "builder=$usage_builder"; echo
+curl -sLG "$url" --data-urlencode "token=$tok" --data-urlencode "fn=setversion" --data-urlencode "n=$usage_n"; echo
 '''
 
 [tasks."gdoc:remove"]
-description = "Trash a builder's doc and remove its registry row: gdoc:remove \"<Builder>\""
+hide = true
+description = "Trash a builder's doc and remove its registry row (destructive)"
 usage = 'arg "<builder>" help="Builder name (exact)"'
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
@@ -153,16 +180,18 @@ curl -sLG "$url" \
 '''
 
 [tasks."gdoc:setup-remote"]
+hide = true
 description = "(Re)initialise the registry sheet headlessly via the web app"
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
 tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
-test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox — run setupApi in the editor first"; exit 1; }
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
 curl -sL "$url?token=$tok&fn=setup"; echo
 '''
 
 [tasks."gdoc:state"]
-description = "Read the registry state (per-row target link + last_synced + status) as JSON"
+hide = true
+description = "Read the registry state as JSON"
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
 tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
@@ -171,7 +200,8 @@ curl -sL "$url?token=$tok&fn=status"; echo
 '''
 
 [tasks."gdoc:share"]
-description = "Add the configured editors (SETTINGS.editors) to every target doc — safe, no retranslation"
+hide = true
+description = "Apply configured editors/access to every target doc (no retranslation)"
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
 tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
@@ -180,7 +210,8 @@ curl -sL "$url?token=$tok&fn=share"; echo
 '''
 
 [tasks."gdoc:log"]
-description = "Show the run log (timestamped progress of the last/ongoing operation)"
+hide = true
+description = "Show the run log (timestamped progress)"
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
 tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
@@ -188,22 +219,19 @@ test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; 
 curl -sL "$url?token=$tok&fn=log"; echo
 '''
 
-# ── info ─────────────────────────────────────────────────────────────────────
-
 [tasks."gdoc:urls"]
-description = "Print the live URLs (registry sheet, editor, executions, web app)"
+hide = true
+description = "Print the live URLs (registry, editor, web app)"
 run = '''
 ID="$(fnox get GDOCS_SYNC_SCRIPT_ID 2>/dev/null || true)"
 REG="$(fnox get GDOCS_SYNC_REGISTRY_URL 2>/dev/null || true)"
 WEB="$(fnox get GDOCS_SYNC_WEBAPP_URL 2>/dev/null || true)"
 [ -n "$REG" ] && echo "Registry sheet : $REG"
 [ -n "$ID" ]  && echo "Apps Script    : https://script.google.com/home/projects/$ID/edit"
-[ -n "$ID" ]  && echo "Executions     : https://script.google.com/home/projects/$ID/executions"
 [ -n "$WEB" ] && echo "Web app        : $WEB"
 '''
 
-# ── clasp MCP server (registered in ~/.claude.json as 'clasp') ───────────────
-
 [tasks."mcp:serve"]
+hide = true
 description = "Run clasp's MCP server over stdio"
 run = "clasp start-mcp-server"
