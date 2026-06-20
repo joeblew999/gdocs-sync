@@ -76,7 +76,7 @@ function syncAll() {
 
       const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
       sh.getRange(r + 1, H.target_link + 1).setValue(link);
-      sh.getRange(r + 1, H.last_synced + 1).setValue(new Date());
+      sh.getRange(r + 1, H.updated + 1).setValue(new Date());
       sh.getRange(r + 1, H.status + 1).setValue(action);
       logEvent_(action + '  ' + row[H.builder] + ' ' + to);
     } catch (e) {
@@ -105,7 +105,7 @@ function removeBuilder_(builder) {
   return removed;
 }
 
-/** Create a builder's translated copy and append a (mode=once) row. Returns its link. */
+/** Create a builder's translated copy at the current master version (immutable). Returns its link. */
 function addBuilder_(builder, email, lang, srcUrl, access) {
   if (!builder) throw new Error('builder name required');
   srcUrl = srcUrl || SETTINGS.master;
@@ -113,22 +113,56 @@ function addBuilder_(builder, email, lang, srcUrl, access) {
   if (!srcId) throw new Error('bad source link');
   lang = lang || 'th';
   access = access || SETTINGS.builderAccess || '';
+  const version = masterVersion_();
 
-  logEvent_('add "' + builder + '" (' + lang + ') — copying + translating…');
-  const tgtId = createTarget_(srcId, lang, builder);
+  logEvent_('add "' + builder + '" v' + version + ' (' + lang + ')…');
+  const tgtId = createTarget_(srcId, lang, builder + ' v' + version);
   translateInto_(srcId, tgtId, 'en', lang);
-  shareTarget_(tgtId, email, access);   // global editors + builder email + link access
+  shareTarget_(tgtId, email, access);
   const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
-  logEvent_('add "' + builder + '" done → ' + link);
+  logEvent_('add "' + builder + '" v' + version + ' done → ' + link);
 
   const sh = registry_().getSheets()[0];
   const H = headerIndex_(sh.getDataRange().getValues()[0]);
   const arr = new Array(SETTINGS.header.length).fill('');
   arr[H.builder] = builder; arr[H.email] = email || ''; arr[H.source_link] = srcUrl;
-  arr[H.from] = 'en'; arr[H.to_lang] = lang; arr[H.mode] = 'once'; arr[H.access] = access;
-  arr[H.target_link] = link; arr[H.last_synced] = new Date(); arr[H.status] = 'created';
+  arr[H.from] = 'en'; arr[H.to_lang] = lang; arr[H.version] = version; arr[H.mode] = 'once';
+  arr[H.target_link] = link; arr[H.access] = access; arr[H.updated] = new Date(); arr[H.status] = 'open';
   sh.appendRow(arr);
   return link;
+}
+
+/** Current master version (Script Property, default 1). */
+function masterVersion_() {
+  return Number(PropertiesService.getScriptProperties().getProperty('master_version') || '1');
+}
+
+/** Bump the master version (run after you change the master doc). Returns the new number. */
+function bumpVersion_() {
+  const v = masterVersion_() + 1;
+  PropertiesService.getScriptProperties().setProperty('master_version', String(v));
+  logEvent_('master bumped to v' + v);
+  return v;
+}
+
+/** New version of a builder's quote from the (updated) master. Old rows kept + marked superseded. */
+function reviseBuilder_(builder) {
+  if (!builder) throw new Error('builder name required');
+  const sh = registry_().getSheets()[0];
+  const vals = sh.getDataRange().getValues();
+  const H = headerIndex_(vals[0]);
+  let ref = null;
+  for (let r = 1; r < vals.length; r++) {
+    if (String(vals[r][H.builder]) === String(builder)) {
+      ref = vals[r];
+      if (String(vals[r][H.status]).toLowerCase() === 'open') {
+        sh.getRange(r + 1, H.status + 1).setValue('superseded');   // keep the doc, mark it old
+      }
+    }
+  }
+  if (!ref) throw new Error('no existing rows for ' + builder);
+  return addBuilder_(builder, ref[H.email], ref[H.to_lang] || 'th',
+                     ref[H.source_link] || SETTINGS.master, ref[H.access] || SETTINGS.builderAccess);
 }
 
 /** Change link access for a builder's row(s) without retranslating. Returns count. */
@@ -192,6 +226,12 @@ function doGet(e) {
   if (fn === 'remove') {
     return text_('removed ' + removeBuilder_(e.parameter.builder));
   }
+  if (fn === 'bump') {
+    return text_('master version: ' + bumpVersion_());
+  }
+  if (fn === 'revise') {
+    return text_(reviseBuilder_(e.parameter.builder));
+  }
   if (fn === 'access') {
     return text_('access set on ' + setAccessFor_(e.parameter.builder, e.parameter.access));
   }
@@ -225,9 +265,8 @@ function statusJson_() {
     const row = vals[r];
     if (!row[H.source_link]) continue;
     out.push({
-      builder: row[H.builder], to: row[H.to_lang], mode: row[H.mode],
-      target_link: row[H.target_link], last_synced: String(row[H.last_synced]),
-      status: row[H.status],
+      builder: row[H.builder], version: row[H.version], to: row[H.to_lang], mode: row[H.mode],
+      status: row[H.status], updated: String(row[H.updated]), target_link: row[H.target_link],
     });
   }
   return out;

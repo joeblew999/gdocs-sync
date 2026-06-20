@@ -119,6 +119,27 @@ curl -sLG "$url" \
   --data-urlencode "access=$usage_access"; echo
 '''
 
+[tasks."gdoc:bump"]
+description = "Bump the master version (run after you change the master doc, before revising builders)"
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sL "$url?token=$tok&fn=bump"; echo
+'''
+
+[tasks."gdoc:revise"]
+description = "New version of a builder's quote from the updated master (old kept + superseded): gdoc:revise \"<Builder>\""
+usage = 'arg "<builder>" help="Builder name (exact)"'
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sLG "$url" \
+  --data-urlencode "token=$tok" --data-urlencode "fn=revise" \
+  --data-urlencode "builder=$usage_builder"; echo
+'''
+
 [tasks."gdoc:remove"]
 description = "Trash a builder's doc and remove its registry row: gdoc:remove \"<Builder>\""
 usage = 'arg "<builder>" help="Builder name (exact)"'

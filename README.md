@@ -101,6 +101,8 @@ mise run gdoc:run          # verify headless trigger works
 
 | Task | Does |
 | ---- | ---- |
+| `gdoc:bump` | bump the master version (after you change the master) |
+| `gdoc:revise "<Builder>"` | new version doc from the updated master; old kept + superseded |
 | `gdoc:add "<Builder>" [--lang th] [--email …]` | create a builder's own translated copy |
 | `gdoc:remove "<Builder>"` | trash a builder's doc + remove its registry row |
 | `gdoc:share` | apply configured editors/email/access to every target doc (no retranslation) |

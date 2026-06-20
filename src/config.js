@@ -1,25 +1,24 @@
 /**
  * Settings. The control panel is a Google Sheet (created by setupRegistry).
- * One row per output doc. Two kinds of row, set by the `mode` column:
+ * One row per OUTPUT DOC. Builder docs are immutable + version-stamped:
  *
- *   mode = sync  → target is re-translated from the source on every run
- *                  (use for a published shared translation)
- *   mode = once  → target is created once, then NEVER overwritten
- *                  (use for a builder's own copy — they write quotes into it)
+ *   builder | email | source_link | from | to_lang | version | mode | target_link | access | updated | status
  *
- * Columns:
- *   builder | email | source_link | from | to_lang | mode | target_link | access | last_synced | status
+ * Versioning (the quotation history):
+ *   - The master has a version number (starts at 1). When you change the master
+ *     after builder feedback, run gdoc:bump → version becomes 2, 3, …
+ *   - gdoc:add / gdoc:revise stamp the doc with the CURRENT master version.
+ *   - gdoc:revise "<Builder>" makes a NEW version doc from the updated master,
+ *     marks the builder's previous row 'superseded' (KEPT, never edited), and
+ *     adds a new 'open' row. So every quote a builder made — spec + their price —
+ *     stays frozen and visible in the registry.
  *
- * Fill builder + source_link + to_lang (+ mode). Leave target_link blank → a doc
- * is created (copy of the source, translated) and its link written back, stable forever.
+ * mode: sync = re-translated each run (the published shared copy);
+ *       once = created then NEVER overwritten (builder copies — protects quotes).
  *
- * How builders edit their doc — choose per row:
- *   - put the builder's Google email in the `email` column → added as an editor of
- *     their doc (recommended: scoped, they sign in and edit only their own); OR
- *   - access column: "edit" = anyone-with-link can EDIT (no sign-in, but anyone with
- *     the link — riskier), "view" = anyone-with-link read-only, blank = private.
- *
- * Add a builder fast with: mise run gdoc:add "<Builder Name>" --lang th --email a@b.com
+ * How builders edit: builders here use LINE (no Google email), so new builder
+ * docs default to access=edit (anyone-with-link can edit). Or put their email in
+ * the email column to add them as a named editor instead.
  *
  * Apps Script shares one global scope across files, so SETTINGS is visible in Code.js.
  */
@@ -29,24 +28,20 @@ const SETTINGS = {
   // Default source (the master spec) used when gdoc:add doesn't specify one.
   master: 'https://docs.google.com/document/d/1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM/edit',
 
-  // People granted EDITOR access on every created target doc (builder + published).
-  // Applied on creation; run `mise run gdoc:share` to back-fill existing docs.
+  // EDITOR on every created target doc (e.g. an internal reviewer).
   editors: ['phimphi.b123@gmail.com'],
-
-  // People granted read-only (VIEWER) access on the registry SHEET itself.
+  // VIEWER (read-only) on the registry SHEET itself.
   registryViewers: ['phimphi.b123@gmail.com'],
-
-  // Default link access for new builder docs created via gdoc:add.
-  // 'edit' = anyone-with-link can edit (builders here use LINE, not Google accounts).
+  // Default link access for new builder docs (LINE builders, no Google account).
   builderAccess: 'edit',
 
-  header: ['builder', 'email', 'source_link', 'from', 'to_lang', 'mode', 'target_link', 'access', 'last_synced', 'status'],
+  header: ['builder', 'email', 'source_link', 'from', 'to_lang', 'version', 'mode', 'target_link', 'access', 'updated', 'status'],
 
-  // Seed: the existing published EN→TH shared translation.
+  // Seed: the published EN→TH shared translation (always-current, not versioned).
   seed: [
     ['published', '',
      'https://docs.google.com/document/d/1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM/edit',
-     'en', 'th', 'sync',
+     'en', 'th', 'live', 'sync',
      'https://docs.google.com/document/d/17k8fZUvbESDOwASl_3o5q9s6dvR7yFnGXqWzdc0Tc1A/edit',
      '', '', ''],
   ],
