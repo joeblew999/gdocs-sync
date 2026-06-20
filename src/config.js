@@ -11,8 +11,13 @@
  *   builder | email | source_link | from | to_lang | mode | target_link | access | last_synced | status
  *
  * Fill builder + source_link + to_lang (+ mode). Leave target_link blank → a doc
- * is created (copy of the source, translated) and its link written back, stable
- * forever. Put "link" in access to make it viewable by anyone with the link.
+ * is created (copy of the source, translated) and its link written back, stable forever.
+ *
+ * How builders edit their doc — choose per row:
+ *   - put the builder's Google email in the `email` column → added as an editor of
+ *     their doc (recommended: scoped, they sign in and edit only their own); OR
+ *   - access column: "edit" = anyone-with-link can EDIT (no sign-in, but anyone with
+ *     the link — riskier), "view" = anyone-with-link read-only, blank = private.
  *
  * Add a builder fast with: mise run gdoc:add "<Builder Name>" --lang th --email a@b.com
  *

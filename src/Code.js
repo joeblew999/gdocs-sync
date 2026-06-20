@@ -66,7 +66,8 @@ function syncAll() {
       } else {                                   // mode=once + exists → leave builder's edits alone
         action = 'kept';
       }
-      if (String(row[H.access]).trim().toLowerCase() === 'link') { setLinkSharing_(tgtId); }
+      if (action === 'created') { shareTarget_(tgtId, row[H.email], row[H.access]); }
+      else { setAccess_(tgtId, row[H.access]); }
 
       const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
       sh.getRange(r + 1, H.target_link + 1).setValue(link);
@@ -110,6 +111,7 @@ function addBuilder_(builder, email, lang, srcUrl) {
   logEvent_('add "' + builder + '" (' + lang + ') — copying + translating…');
   const tgtId = createTarget_(srcId, lang, builder);
   translateInto_(srcId, tgtId, 'en', lang);
+  shareTarget_(tgtId, email, '');   // global editors + the builder's own email
   const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
   logEvent_('add "' + builder + '" done → ' + link);
 
@@ -245,11 +247,20 @@ function createTarget_(sourceId, lang, label) {
   if (label) { title += ' — ' + label; }
   const parents = f.getParents();
   const copy = parents.hasNext() ? f.makeCopy(title, parents.next()) : f.makeCopy(title);
-  applyEditors_(copy.getId());
   return copy.getId();
 }
 
-/** Grant the configured editors edit access to a doc (idempotent; never edits content). */
+/** Full sharing for one target: global editors + this row's builder email + link access. */
+function shareTarget_(id, email, access) {
+  applyEditors_(id);                                   // global SETTINGS.editors
+  if (email) {                                         // the builder edits their own doc
+    try { DriveApp.getFileById(id).addEditor(String(email).trim()); }
+    catch (e) { logEvent_('addEditor ' + email + ' failed on ' + id + ': ' + e); }
+  }
+  setAccess_(id, access);
+}
+
+/** Grant the configured global editors edit access (idempotent; never edits content). */
 function applyEditors_(id) {
   (SETTINGS.editors || []).forEach(function (email) {
     if (!email) return;
@@ -258,7 +269,15 @@ function applyEditors_(id) {
   });
 }
 
-/** Add the configured editors to every target doc in the registry. Returns count. */
+/** Link sharing per the access column: 'edit' = anyone-with-link EDIT, 'view'/'link' = VIEW. */
+function setAccess_(id, access) {
+  const a = String(access || '').trim().toLowerCase();
+  const f = DriveApp.getFileById(id);
+  if (a === 'edit') { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT); }
+  else if (a === 'view' || a === 'link') { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }
+}
+
+/** Apply full sharing (editors + builder email + access) to every target doc. */
 function shareAll_() {
   const sh = registry_().getSheets()[0];
   const vals = sh.getDataRange().getValues();
@@ -266,9 +285,9 @@ function shareAll_() {
   let n = 0;
   for (let r = 1; r < vals.length; r++) {
     const id = extractId_(vals[r][H.target_link]);
-    if (id) { applyEditors_(id); n++; }
+    if (id) { shareTarget_(id, vals[r][H.email], vals[r][H.access]); n++; }
   }
-  logEvent_('shared ' + n + ' docs with editors');
+  logEvent_('shared ' + n + ' docs');
   return n;
 }
 
@@ -278,10 +297,6 @@ function translateInto_(sourceId, targetId, from, to) {
   copyBody_(src.getBody(), dst.getBody());
   translateContainer_(dst.getBody(), from, to);
   dst.saveAndClose();
-}
-
-function setLinkSharing_(id) {
-  DriveApp.getFileById(id).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 }
 
 /** Replace the destination body with copies of the source body's elements. */

@@ -32,7 +32,11 @@ for that button) using [Apps Script](https://developers.google.com/apps-script) 
    - **mode = once** → created once, then **never overwritten** — for a **builder's own copy**,
      which they read and write quotes into.
    - Leave **target_link** blank → a doc is created (copy of the source, translated) and its
-     link written back (stable forever). `link` in **access** = anyone-with-link view.
+     link written back (stable forever).
+   - **How builders edit:** put the builder's Google email in **email** → they're added as an
+     editor of their own doc (recommended). Or set **access** = `edit` (anyone-with-link can
+     edit, no sign-in but riskier) / `view` (read-only) / blank (private).
+   - `SETTINGS.editors` are added as editors on **every** doc (e.g. an internal reviewer).
 2. `syncAll` processes every row: creates missing docs, re-translates `sync` rows, leaves
    `once` rows alone (so builder edits survive), and writes links back.
 3. Targets are edited **in place** (by id) — ID, share link, permissions never change.
