@@ -11,6 +11,10 @@ node = "lts"
 
 # ── one-time auth bootstrap ──────────────────────────────────────────────────
 
+[tasks."gdoc:onboard"]
+description = "Guided setup: prompts you through Script ID + clasp login, stores secrets in fnox, pushes"
+run = "nu scripts/onboard.nu"
+
 [tasks."gdoc:login"]
 description = "Interactive Google OAuth (writes ~/.clasprc.json). Run once, then gdoc:auth-save."
 run = "clasp login"

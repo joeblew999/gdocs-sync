@@ -53,9 +53,21 @@ Two values live in the macOS keychain via [fnox](https://github.com/jdx/fnox), n
 
 ## One-time setup
 
-1. **Bind the script to the EN doc** so it can add a menu:
-   - Open the EN doc → **Extensions → Apps Script** → **Project Settings** → copy the **Script ID**.
-2. **Authenticate clasp** (interactive, your Google account) and stash the credential:
+**Easiest — guided:**
+
+```sh
+mise run gdoc:onboard
+```
+
+It walks you through getting the Script ID + `clasp login`, stores both secrets in the
+keychain via fnox, writes `.clasp.json`, and pushes the code. Then reload the EN doc and
+**Sync TH → Refresh TH from EN (now)** (approve the auth prompt once).
+
+<details><summary>Manual equivalent (if you'd rather run the steps yourself)</summary>
+
+1. **Bind the script to the EN doc:** open the EN doc → **Extensions → Apps Script** →
+   **Project Settings** → copy the **Script ID**.
+2. **Authenticate clasp** and stash the credential:
    ```sh
    mise run gdoc:login        # browser OAuth → ~/.clasprc.json
    mise run gdoc:auth-save    # capture it into the keychain
@@ -69,6 +81,7 @@ Two values live in the macOS keychain via [fnox](https://github.com/jdx/fnox), n
    ```sh
    mise run gdoc:push         # auth-restores from keychain, then clasp push
    ```
+</details>
 
 ## Daily use
 
