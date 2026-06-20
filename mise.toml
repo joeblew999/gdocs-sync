@@ -50,6 +50,15 @@ description = "Push local src/ up to the bound Apps Script project"
 depends = ["gdoc:auth-restore"]
 run = "clasp push -f"
 
+[tasks."gdoc:dev"]
+description = "Watch src/ and auto-push to Apps Script on every save (tight dev loop)"
+depends = ["gdoc:auth-restore"]
+run = "clasp push --watch"
+
+[tasks."gdoc:status"]
+description = "Preview which files would be pushed (no upload)"
+run = "clasp status"
+
 [tasks."gdoc:pull"]
 description = "Pull the remote Apps Script project down into src/"
 depends = ["gdoc:auth-restore"]
