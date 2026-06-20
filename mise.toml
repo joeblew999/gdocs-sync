@@ -84,15 +84,33 @@ curl -sL "$url?token=$tok&fn=sync"; echo
 
 [tasks."gdoc:add"]
 description = "Create a builder's translated copy: gdoc:add \"<Builder>\" [--lang th] [--email a@b]"
+usage = '''
+arg "<builder>" help="Builder name"
+flag "--lang <lang>" help="Target language" default="th"
+flag "--email <email>" help="Builder email" default=""
+'''
 run = '''
 url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
 tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
 test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
-b=$(printf %s "{{arg(name='builder')}}" | jq -sRr @uri)
-l="{{option(name='lang', default='th')}}"
-e=$(printf %s "{{option(name='email', default='')}}" | jq -sRr @uri)
 echo "creating builder doc…"
-curl -sL "$url?token=$tok&fn=add&builder=$b&lang=$l&email=$e"; echo
+curl -sLG "$url" \
+  --data-urlencode "token=$tok" --data-urlencode "fn=add" \
+  --data-urlencode "builder=$usage_builder" \
+  --data-urlencode "lang=$usage_lang" \
+  --data-urlencode "email=$usage_email"; echo
+'''
+
+[tasks."gdoc:remove"]
+description = "Trash a builder's doc and remove its registry row: gdoc:remove \"<Builder>\""
+usage = 'arg "<builder>" help="Builder name (exact)"'
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sLG "$url" \
+  --data-urlencode "token=$tok" --data-urlencode "fn=remove" \
+  --data-urlencode "builder=$usage_builder"; echo
 '''
 
 [tasks."gdoc:setup-remote"]

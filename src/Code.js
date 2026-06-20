@@ -79,6 +79,24 @@ function syncAll() {
   }
 }
 
+/** Trash the target doc(s) and delete the registry row(s) for a builder. Returns count. */
+function removeBuilder_(builder) {
+  if (!builder) throw new Error('builder name required');
+  const sh = registry_().getSheets()[0];
+  const vals = sh.getDataRange().getValues();
+  const H = headerIndex_(vals[0]);
+  let removed = 0;
+  for (let r = vals.length - 1; r >= 1; r--) {            // bottom-up so row indices stay valid
+    if (String(vals[r][H.builder]) === String(builder)) {
+      const id = extractId_(vals[r][H.target_link]);
+      if (id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) { /* already gone */ } }
+      sh.deleteRow(r + 1);
+      removed++;
+    }
+  }
+  return removed;
+}
+
 /** Create a builder's translated copy and append a (mode=once) row. Returns its link. */
 function addBuilder_(builder, email, lang, srcUrl) {
   if (!builder) throw new Error('builder name required');
@@ -128,6 +146,9 @@ function doGet(e) {
   if (fn === 'add') {
     const link = addBuilder_(e.parameter.builder, e.parameter.email, e.parameter.lang, e.parameter.src);
     return text_(link);
+  }
+  if (fn === 'remove') {
+    return text_('removed ' + removeBuilder_(e.parameter.builder));
   }
   if (fn === 'status') {
     return ContentService.createTextOutput(JSON.stringify(statusJson_(), null, 2))

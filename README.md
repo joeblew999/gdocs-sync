@@ -98,6 +98,7 @@ mise run gdoc:run          # verify headless trigger works
 | Task | Does |
 | ---- | ---- |
 | `gdoc:add "<Builder>" [--lang th] [--email …]` | create a builder's own translated copy |
+| `gdoc:remove "<Builder>"` | trash a builder's doc + remove its registry row |
 | `gdoc:run` | trigger syncAll headlessly (web app) |
 | `gdoc:state` | read registry state (links + status) as JSON |
 | `gdoc:setup-remote` | (re)initialise the registry sheet headlessly |
