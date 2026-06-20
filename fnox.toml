@@ -29,7 +29,7 @@ GDOCS_SYNC_CLASP_RC= { provider = "keychain", value = "GDOCS_SYNC_CLASP_RC" }
 # Web-app trigger (full headless control via `mise run gdoc:run`).
 # URL is not secret; the token gates execution and IS secret.
 GDOCS_SYNC_WEBAPP_URL= { provider = "keychain", value = "GDOCS_SYNC_WEBAPP_URL" }
-GDOCS_SYNC_API_TOKEN  = { provider = "keychain", value = "GDOCS_SYNC_API_TOKEN" }
+GDOCS_SYNC_API_TOKEN= { provider = "keychain", value = "GDOCS_SYNC_API_TOKEN" }
 GDOCS_SYNC_DEPLOY_ID= { provider = "keychain", value = "GDOCS_SYNC_DEPLOY_ID" }
 GDOCS_SYNC_REGISTRY_URL= { provider = "keychain", value = "GDOCS_SYNC_REGISTRY_URL" }
 

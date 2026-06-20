@@ -93,11 +93,33 @@ function doGet(e) {
   }
   const fn = (e.parameter.fn || 'sync');
   if (fn === 'setup') { setupRegistry(); return text_('setup ok'); }
+  if (fn === 'status') {
+    return ContentService.createTextOutput(JSON.stringify(statusJson_(), null, 2))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   syncAll();
   return text_('sync ok');
 }
 
 function text_(s) { return ContentService.createTextOutput(s).setMimeType(ContentService.MimeType.TEXT); }
+
+/** Registry rows as plain objects (for the status endpoint). */
+function statusJson_() {
+  const sh = registry_().getSheets()[0];
+  const vals = sh.getDataRange().getValues();
+  const H = headerIndex_(vals[0]);
+  const out = [];
+  for (let r = 1; r < vals.length; r++) {
+    const row = vals[r];
+    if (!row[H.source_link]) continue;
+    out.push({
+      name: row[H.name], to: row[H.to_lang],
+      target_link: row[H.target_link], last_synced: String(row[H.last_synced]),
+      status: row[H.status],
+    });
+  }
+  return out;
+}
 
 /** Generate (once) and print the API token used to call the web app. */
 function setupApi() {

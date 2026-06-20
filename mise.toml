@@ -91,6 +91,15 @@ test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox — run se
 curl -sL "$url?token=$tok&fn=setup"; echo
 '''
 
+[tasks."gdoc:state"]
+description = "Read the registry state (per-row target link + last_synced + status) as JSON"
+run = '''
+url="$(fnox get GDOCS_SYNC_WEBAPP_URL)"
+tok="$(fnox get GDOCS_SYNC_API_TOKEN)"
+test -n "$url" && test -n "$tok" || { echo "missing URL/token in fnox"; exit 1; }
+curl -sL "$url?token=$tok&fn=status"; echo
+'''
+
 # ── info ─────────────────────────────────────────────────────────────────────
 
 [tasks."gdoc:urls"]
