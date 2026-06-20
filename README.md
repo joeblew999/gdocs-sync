@@ -1,5 +1,15 @@
 # gdocs-sync
 
+> **Links** &nbsp;·&nbsp; replace `SCRIPT_ID` with your Apps Script Script ID, or run `mise run gdoc:urls`
+>
+> | | URL |
+> | --- | --- |
+> | 📄 EN doc (source) | https://docs.google.com/document/d/1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM/edit |
+> | 📄 TH doc (target) | https://docs.google.com/document/d/17k8fZUvbESDOwASl_3o5q9s6dvR7yFnGXqWzdc0Tc1A/edit |
+> | 🧩 Apps Script editor | `https://script.google.com/home/projects/SCRIPT_ID/edit` |
+> | ▶️ **Executions** (watch it sync) | `https://script.google.com/home/projects/SCRIPT_ID/executions` |
+> | ⏰ Triggers (nightly auto-sync) | `https://script.google.com/home/projects/SCRIPT_ID/triggers` |
+
 Keep a **Thai (TH)** Google Doc in sync with an **English (EN)** source, automatically.
 
 This replaces the manual routine: *copy the EN doc → Tools → Translate document*.
@@ -63,8 +73,18 @@ Two values live in the macOS keychain via [fnox](https://github.com/jdx/fnox), n
 ## Daily use
 
 - Edit `src/Code.js`, then `mise run gdoc:push`.
-- In the EN doc, reload → **Sync TH → Refresh TH from EN**.
+- In the EN doc, reload → **Sync TH → Refresh TH from EN (now)**.
 - First run prompts for **authorization** (your own account on your own docs) — approve it.
+- `mise run gdoc:urls` prints the live console/executions/triggers/doc URLs.
+
+## Make it run on its own
+
+See **[ONBOARDING.md](ONBOARDING.md)**. Two routes:
+
+- **Route A — nightly trigger / menu** (recommended, no extra setup): **Sync TH → Enable
+  nightly auto-sync**. Watch it on the Executions page.
+- **Route B — `mise run gdoc:sync`** (trigger from the terminal): needs a Google Cloud
+  project + OAuth client (`clasp run`). Steps and the URLs to visit are in ONBOARDING.md.
 
 ## Current behaviour & limits (v1)
 

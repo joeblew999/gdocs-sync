@@ -64,3 +64,29 @@ run = "clasp open"
 description = "Tail execution logs from the Apps Script project"
 depends = ["gdoc:auth-restore"]
 run = "clasp logs --watch"
+
+# ── links / watch it sync ────────────────────────────────────────────────────
+
+[tasks."gdoc:urls"]
+description = "Print the live URLs (Apps Script console, executions, triggers, docs)"
+run = '''
+EN=1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM
+TH=17k8fZUvbESDOwASl_3o5q9s6dvR7yFnGXqWzdc0Tc1A
+ID="$(fnox get GDOCS_SYNC_SCRIPT_ID 2>/dev/null || true)"
+echo "EN doc        : https://docs.google.com/document/d/$EN/edit"
+echo "TH doc        : https://docs.google.com/document/d/$TH/edit"
+if [ -n "$ID" ]; then
+  echo "Apps Script   : https://script.google.com/home/projects/$ID/edit"
+  echo "Executions    : https://script.google.com/home/projects/$ID/executions"
+  echo "Triggers      : https://script.google.com/home/projects/$ID/triggers"
+else
+  echo "(set the Script ID first: mise run gdoc:id-set <id>)"
+fi
+'''
+
+# ── CLI run route (needs ONBOARDING.md: GCP project + OAuth creds) ────────────
+
+[tasks."gdoc:sync"]
+description = "Run syncToThai INSIDE Apps Script from the CLI (requires clasp run onboarding)"
+depends = ["gdoc:auth-restore"]
+run = "clasp run syncToThai"

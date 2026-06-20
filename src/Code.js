@@ -19,8 +19,35 @@ const TARGET_LANG = 'th';
 function onOpen() {
   DocumentApp.getUi()
     .createMenu('Sync TH')
-    .addItem('Refresh TH from EN', 'syncToThai')
+    .addItem('Refresh TH from EN (now)', 'syncToThai')
+    .addSeparator()
+    .addItem('Enable nightly auto-sync', 'enableNightlySync')
+    .addItem('Disable auto-sync', 'disableAutoSync')
     .addToUi();
+}
+
+/** Install a time-driven trigger so syncToThai runs every night. No GCP setup needed. */
+function enableNightlySync() {
+  disableAutoSync(); // avoid duplicates
+  ScriptApp.newTrigger('syncToThai')
+    .timeBased()
+    .everyDays(1)
+    .atHour(3) // 03:00 in the script's timezone (Asia/Bangkok per appsscript.json)
+    .create();
+  maybeAlert_('Nightly auto-sync enabled (runs ~03:00 Asia/Bangkok).');
+}
+
+/** Remove all triggers for syncToThai. */
+function disableAutoSync() {
+  ScriptApp.getProjectTriggers()
+    .filter(function (t) { return t.getHandlerFunction() === 'syncToThai'; })
+    .forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  maybeAlert_('Auto-sync disabled.');
+}
+
+/** Alert only when run from the UI (triggers/clasp run have no UI). */
+function maybeAlert_(msg) {
+  try { DocumentApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
 
 /**
