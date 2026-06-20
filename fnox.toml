@@ -21,10 +21,10 @@ service = "fnox"
 
 [secrets]
 # Apps Script project id for the script bound to the EN doc (not secret — config).
-GDOCS_SYNC_SCRIPT_ID = { provider = "keychain", value = "GDOCS_SYNC_SCRIPT_ID" }
+GDOCS_SYNC_SCRIPT_ID= { provider = "keychain", value = "GDOCS_SYNC_SCRIPT_ID" }
 
 # clasp OAuth credentials — full contents of ~/.clasprc.json (refresh token). SECRET.
-GDOCS_SYNC_CLASP_RC  = { provider = "keychain", value = "GDOCS_SYNC_CLASP_RC" }
+GDOCS_SYNC_CLASP_RC= { provider = "keychain", value = "GDOCS_SYNC_CLASP_RC" }
 
 # OPTIONAL — only for the CLI run route (`mise run gdoc:sync` → clasp run).
 # Contents of the GCP "Desktop app" OAuth client JSON downloaded from the Cloud

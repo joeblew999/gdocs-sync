@@ -28,15 +28,17 @@ The Apps Script project is managed as files on disk via
 | EN source | `1-p_yr0CXLOrK8IsabGA9p6PQhh8d9vTqqy4ihSK0IjM` |
 | TH target | `17k8fZUvbESDOwASl_3o5q9s6dvR7yFnGXqWzdc0Tc1A` |
 
-(Both are set in `src/Code.js`.)
+The script is a **standalone** Apps Script project (not bound to any doc), so it's
+**reusable**: it syncs every pair listed in `src/config.js`. Add a pair, push, done.
 
 ## Layout
 
 ```
 src/
   appsscript.json   # manifest: V8 runtime + OAuth scopes
-  Code.js           # the sync logic + "Sync TH" menu
-mise.toml           # gdoc:* tasks wrapping clasp
+  config.js         # JOBS — one entry per doc pair (the reusable config)
+  Code.js           # syncAll() + nightly-trigger helpers (no menu — standalone)
+mise.toml           # gdoc:* tasks wrapping clasp, + mcp:serve
 fnox.toml           # secret contract: clasp OAuth credential + Script ID (keychain)
 ```
 
@@ -85,19 +87,29 @@ keychain via fnox, writes `.clasp.json`, and pushes the code. Then reload the EN
 
 ## Daily use
 
-- Edit `src/Code.js`, then `mise run gdoc:push`.
-- In the EN doc, reload → **Sync TH → Refresh TH from EN (now)**.
-- First run prompts for **authorization** (your own account on your own docs) — approve it.
+- Add/edit a pair in `src/config.js`, then `mise run gdoc:push`.
 - `mise run gdoc:urls` prints the live console/executions/triggers/doc URLs.
+- It's standalone (no in-doc menu). Run `syncAll` one of these ways:
+  - **Editor:** open the script (`gdoc:open`), pick `syncAll`, **Run** (approve scopes once).
+  - **Nightly:** run `enableNightlySync` once → it auto-runs every night.
+  - **Terminal:** `mise run gdoc:sync` (needs the Route B setup in ONBOARDING.md).
+
+## clasp MCP server
+
+clasp ships an MCP server (`clasp start-mcp-server`), wired in two ways:
+
+- `mise run mcp:serve` — run it ad-hoc.
+- Registered in `~/.claude.json` as the **`clasp`** server (launched via mise, cwd = this
+  repo), so **any Claude session** can drive Apps Script directly. Tools:
+  `list_projects`, `create_project`, `clone_project`, `push_files`, `pull_files`.
 
 ## Make it run on its own
 
-See **[ONBOARDING.md](ONBOARDING.md)**. Two routes:
+See **[ONBOARDING.md](ONBOARDING.md)**.
 
-- **Route A — nightly trigger / menu** (recommended, no extra setup): **Sync TH → Enable
-  nightly auto-sync**. Watch it on the Executions page.
-- **Route B — `mise run gdoc:sync`** (trigger from the terminal): needs a Google Cloud
-  project + OAuth client (`clasp run`). Steps and the URLs to visit are in ONBOARDING.md.
+- **Nightly (no setup):** run `enableNightlySync` once. Watch it on the Executions page.
+- **Terminal (`mise run gdoc:sync`):** needs a Google Cloud project + OAuth client
+  (`clasp run`). Steps and URLs are in ONBOARDING.md.
 
 ## Current behaviour & limits (v1)
 
@@ -110,6 +122,8 @@ See **[ONBOARDING.md](ONBOARDING.md)**. Two routes:
 
 ## Roadmap
 
-- [ ] Change-only sync — hash EN paragraphs in `PropertiesService`, re-translate only what changed.
-- [ ] Optional time-driven trigger (nightly auto-sync).
+- [x] Standalone + config-driven (multiple pairs via `src/config.js`).
+- [x] Nightly time-driven trigger (`enableNightlySync`).
+- [x] clasp MCP server wired for any Claude session.
+- [ ] Change-only sync — hash source paragraphs, re-translate only what changed.
 - [ ] Glossary / do-not-translate term list.

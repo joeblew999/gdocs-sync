@@ -78,6 +78,12 @@ description = "Tail execution logs from the Apps Script project"
 depends = ["gdoc:auth-restore"]
 run = "clasp logs --watch"
 
+# ── clasp MCP server (for Claude sessions) ───────────────────────────────────
+
+[tasks."mcp:serve"]
+description = "Run clasp's MCP server over stdio (registered in ~/.claude.json as the 'clasp' server)"
+run = "clasp start-mcp-server"
+
 # ── links / watch it sync ────────────────────────────────────────────────────
 
 [tasks."gdoc:urls"]
