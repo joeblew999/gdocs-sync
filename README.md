@@ -125,5 +125,5 @@ See **[ONBOARDING.md](ONBOARDING.md)**.
 - [x] Standalone + config-driven (multiple pairs via `src/config.js`).
 - [x] Nightly time-driven trigger (`enableNightlySync`).
 - [x] clasp MCP server wired for any Claude session.
-- [ ] Change-only sync — hash source paragraphs, re-translate only what changed.
+- [x] Target doc edited in place → stable ID / share link across every sync.
 - [ ] Glossary / do-not-translate term list.
