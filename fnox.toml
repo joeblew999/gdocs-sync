@@ -1,0 +1,27 @@
+# Secret resolution for gdocs-sync.
+# Repo: github.com/joeblew999/gdocs-sync
+#
+# Values live in the macOS keychain; this file declares the contract.
+# (NEVER omit `-p keychain` on `fnox set` — without it values get inlined as plaintext.)
+#
+# The clasp OAuth credential (refresh token) is the real secret. The Script ID
+# is not sensitive but is kept here so .clasp.json regenerates from the keychain,
+# making the whole setup reproducible on any machine without hand-editing files.
+#
+# Bootstrap order (see mise.toml gdoc:* tasks):
+#   1. mise run gdoc:login           # interactive Google OAuth → writes ~/.clasprc.json
+#   2. mise run gdoc:auth-save       # capture ~/.clasprc.json into the keychain
+#   3. mise run gdoc:id-set <id>     # store the Apps Script Script ID
+#   4. mise run gdoc:link            # regenerate .clasp.json from the keychain
+#   5. mise run gdoc:push            # auth-restore (from keychain) then clasp push
+
+[providers.keychain]
+type = "keychain"
+service = "fnox"
+
+[secrets]
+# Apps Script project id for the script bound to the EN doc (not secret — config).
+GDOCS_SYNC_SCRIPT_ID = { provider = "keychain", value = "GDOCS_SYNC_SCRIPT_ID" }
+
+# clasp OAuth credentials — full contents of ~/.clasprc.json (refresh token). SECRET.
+GDOCS_SYNC_CLASP_RC  = { provider = "keychain", value = "GDOCS_SYNC_CLASP_RC" }

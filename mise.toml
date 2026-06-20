@@ -1,0 +1,66 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+
+# gdocs-sync — Apps Script project managed via clasp.
+# Tools are repo-specific (clasp is a node CLI). nushell/gh/jq/fnox are GLOBAL.
+# Secrets resolve through fnox (see fnox.toml): the clasp OAuth credential and the
+# Apps Script Script ID live in the keychain, never in committed files.
+
+[tools]
+node = "lts"
+"npm:@google/clasp" = "latest"
+
+# ── one-time auth bootstrap ──────────────────────────────────────────────────
+
+[tasks."gdoc:login"]
+description = "Interactive Google OAuth (writes ~/.clasprc.json). Run once, then gdoc:auth-save."
+run = "clasp login"
+
+[tasks."gdoc:auth-save"]
+description = "Capture ~/.clasprc.json into the keychain via fnox (after gdoc:login)"
+run = '''
+test -f "$HOME/.clasprc.json" || { echo "no ~/.clasprc.json — run gdoc:login first"; exit 1; }
+fnox set -p keychain GDOCS_SYNC_CLASP_RC "$(cat "$HOME/.clasprc.json")"
+echo "saved clasp credentials to keychain (GDOCS_SYNC_CLASP_RC)"
+'''
+
+[tasks."gdoc:auth-restore"]
+description = "Materialize ~/.clasprc.json from the keychain so clasp can run"
+run = '''
+fnox get GDOCS_SYNC_CLASP_RC > "$HOME/.clasprc.json"
+echo "restored ~/.clasprc.json from keychain"
+'''
+
+[tasks."gdoc:id-set"]
+description = "Store the Apps Script Script ID in the keychain (from EN doc → Apps Script → Project Settings)"
+run = "fnox set -p keychain GDOCS_SYNC_SCRIPT_ID {{arg(name='script_id')}}"
+
+[tasks."gdoc:link"]
+description = "Regenerate .clasp.json from the Script ID in the keychain"
+run = '''
+id="$(fnox get GDOCS_SYNC_SCRIPT_ID)"
+test -n "$id" || { echo "no Script ID — run: mise run gdoc:id-set <id>"; exit 1; }
+printf '{\n  "scriptId": "%s",\n  "rootDir": "src"\n}\n' "$id" > .clasp.json
+echo "wrote .clasp.json"
+'''
+
+# ── deploy / run loop ────────────────────────────────────────────────────────
+
+[tasks."gdoc:push"]
+description = "Push local src/ up to the bound Apps Script project"
+depends = ["gdoc:auth-restore"]
+run = "clasp push -f"
+
+[tasks."gdoc:pull"]
+description = "Pull the remote Apps Script project down into src/"
+depends = ["gdoc:auth-restore"]
+run = "clasp pull"
+
+[tasks."gdoc:open"]
+description = "Open the Apps Script project in the browser"
+depends = ["gdoc:auth-restore"]
+run = "clasp open"
+
+[tasks."gdoc:logs"]
+description = "Tail execution logs from the Apps Script project"
+depends = ["gdoc:auth-restore"]
+run = "clasp logs --watch"

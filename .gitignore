@@ -1,0 +1,11 @@
+# clasp project link — contains your scriptId, environment-specific
+.clasp.json
+
+# clasp / google credentials (these live in $HOME, never commit if copied here)
+.clasprc.json
+
+# node
+node_modules/
+
+# OS cruft
+.DS_Store
