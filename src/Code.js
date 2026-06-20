@@ -11,7 +11,8 @@
  *   disableAutoSync()   — remove those triggers
  */
 
-/** Create (or find) the control Sheet, write the header, seed a first row. */
+/** Create (or find) the control Sheet and ensure its schema. Migrates the sheet
+ *  (clears + reseeds) if the header doesn't match the current columns. */
 function setupRegistry() {
   const props = PropertiesService.getScriptProperties();
   let ss = null;
@@ -22,11 +23,20 @@ function setupRegistry() {
     props.setProperty('registry_id', ss.getId());
   }
   const sh = ss.getSheets()[0];
-  sh.getRange(1, 1, 1, SETTINGS.header.length).setValues([SETTINGS.header]).setFontWeight('bold');
-  sh.setFrozenRows(1);
-  if (sh.getLastRow() < 2 && SETTINGS.seed.length) {
-    sh.getRange(2, 1, SETTINGS.seed.length, SETTINGS.seed[0].length).setValues(SETTINGS.seed);
+  const cols = SETTINGS.header.length;
+  const cur = sh.getLastColumn() ? sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), cols)).getValues()[0] : [];
+  const matches = cur.slice(0, cols).map(String).join('|') === SETTINGS.header.join('|');
+
+  if (!matches) {                       // fresh sheet or schema change → (re)initialise
+    sh.clearContents();
+    sh.getRange(1, 1, 1, cols).setValues([SETTINGS.header]).setFontWeight('bold');
+    if (SETTINGS.seed.length) {
+      sh.getRange(2, 1, SETTINGS.seed.length, SETTINGS.seed[0].length).setValues(SETTINGS.seed);
+    }
+  } else {
+    sh.getRange(1, 1, 1, cols).setValues([SETTINGS.header]).setFontWeight('bold');
   }
+  sh.setFrozenRows(1);
   Logger.log('Registry sheet: ' + ss.getUrl());
 }
 
@@ -39,17 +49,16 @@ function syncAll() {
 
   for (let r = 1; r < vals.length; r++) {
     const row = vals[r];
-    const source = row[H.source_id], to = row[H.to_lang], from = row[H.from] || 'en';
-    if (!source || !to) continue;
+    const srcId = extractId_(row[H.source_link]), to = row[H.to_lang], from = row[H.from] || 'en';
+    if (!srcId || !to) continue;
     try {
-      let targetId = row[H.target_id];
-      if (!targetId) { targetId = createTarget_(source, to); }
-      translateInto_(source, targetId, from, to);
-      if (String(row[H.access]).trim().toLowerCase() === 'link') { setLinkSharing_(targetId); }
+      let tgtId = extractId_(row[H.target_link]);
+      if (!tgtId) { tgtId = createTarget_(srcId, to); }
+      translateInto_(srcId, tgtId, from, to);
+      if (String(row[H.access]).trim().toLowerCase() === 'link') { setLinkSharing_(tgtId); }
 
-      const link = 'https://docs.google.com/document/d/' + targetId + '/edit';
-      sh.getRange(r + 1, H.target_id + 1).setValue(targetId);
-      sh.getRange(r + 1, H.share_link + 1).setValue(link);
+      const link = 'https://docs.google.com/document/d/' + tgtId + '/edit';
+      sh.getRange(r + 1, H.target_link + 1).setValue(link);
       sh.getRange(r + 1, H.last_synced + 1).setValue(new Date());
       sh.getRange(r + 1, H.status + 1).setValue('ok');
       Logger.log('OK   ' + row[H.name] + ' ' + to + ' → ' + link);
@@ -58,6 +67,13 @@ function syncAll() {
       Logger.log('FAIL ' + row[H.name] + ' ' + to + ': ' + e);
     }
   }
+}
+
+/** Pull the doc id out of a full Google Docs URL (or return '' if none). */
+function extractId_(url) {
+  if (!url) return '';
+  const m = String(url).match(/[-\w]{25,}/);
+  return m ? m[0] : '';
 }
 
 function openRegistry() { Logger.log('Registry sheet: ' + registry_().getUrl()); }
