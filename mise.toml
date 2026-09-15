@@ -5,8 +5,9 @@
 # All secrets/config resolve through fnox (see fnox.toml) — never committed.
 
 [tools]
-node = "lts"
-"npm:@google/clasp" = "latest"
+# Exact pins: the clasp MCP server in .mcp.json runs these (`mise exec -- clasp start-mcp-server`).
+node = "24.19.0"
+"npm:@google/clasp" = "3.3.0"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TASKS YOU RUN  (these are the only ones that show in `mise tasks`)

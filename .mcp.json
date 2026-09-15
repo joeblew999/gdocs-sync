@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "clasp": {
+      "type": "stdio",
+      "command": "mise",
+      "args": ["exec", "--", "clasp", "start-mcp-server"]
+    }
+  }
+}
